@@ -1,0 +1,41 @@
+name: YouTube daily stats
+
+on:
+  # Lancement manuel depuis l’onglet "Actions"
+  workflow_dispatch:
+  # Lancement automatique chaque jour à 06:00 UTC
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  youtube-stats:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run YouTube stats script
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
+        run: |
+          python scripts/youtube_stats.py
+
+      - name: Commit daily report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add daily_reports/ || echo "nothing to add"
+          git commit -m "Update YouTube stats $(date -u '+%Y-%m-%d')" || echo "nothing to commit"
+          git push
